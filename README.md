@@ -81,13 +81,33 @@ To stop and delete all data:
 docker compose down -v
 ```
 
-### 5. Run migrations
+### 5. Access the database (optional)
+
+To open a MySQL shell inside the container:
+
+```bash
+docker exec -it comunication_ltd_db mysql -u root -proot comunication_ltd
+```
+
+Or connect with a GUI client (TablePlus, DBeaver, MySQL Workbench):
+
+| Field    | Value         |
+|----------|---------------|
+| Host     | 127.0.0.1     |
+| Port     | 3306          |
+| User     | root          |
+| Password | root          |
+| Database | comunication_ltd |
+
+> If you are using Podman instead of Docker, replace `docker` with `podman` in the command above.
+
+### 6. Run migrations
 
 ```bash
 python manage.py migrate
 ```
 
-### 6. Create the first admin account
+### 7. Create the first admin account
 
 ```bash
 python manage.py create_admin
@@ -100,7 +120,7 @@ Password requirements (set in `password_config.json`):
 - At least one uppercase letter, lowercase letter, digit, and special character
 - Cannot be a common dictionary word
 
-### 7. Run the development server
+### 8. Run the development server
 
 ```bash
 python manage.py runserver
