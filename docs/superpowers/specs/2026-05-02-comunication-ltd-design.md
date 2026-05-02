@@ -125,7 +125,7 @@ Read at runtime on every password validation call — changes take effect immedi
 ### Unauthenticated
 | URL | Screen | Description |
 |---|---|---|
-| `/login/` | Login | Username + password, enforces attempt limit |
+| `/login/` | Login | Username + password, enforces attempt limit, returns distinct messages ("User does not exist" vs "Incorrect password") |
 | `/forgot-password/` | Forgot Password | Enter username → token sent to email |
 | `/reset-password/` | Reset Password | Enter the token received by email + new password |
 
@@ -169,6 +169,11 @@ Read at runtime on every password validation call — changes take effect immedi
 3. Dictionary: reject if password is in the dictionary list
 4. History: HMAC the new password with each historical salt, reject if it matches any of the last `history_limit` entries
 
+### Login Error Messages
+- If username not found in DB → return `"User does not exist"`
+- If username found but password incorrect → return `"Incorrect password"`
+- These are distinct messages per the assignment rubric. A code comment will note that production systems use a generic message to prevent user enumeration.
+
 ### Login Attempt Limiting
 - Track failed attempts in `Worker.login_attempts`
 - On each failed login: increment counter
@@ -207,7 +212,7 @@ Fixes both vulnerability classes:
 | SQLi on Login | `cursor.execute("SELECT ... WHERE username = %s", [username])` |
 | SQLi on Register | Parameterized INSERT |
 | SQLi on Add Customer | Parameterized INSERT |
-| Stored XSS on customer name | Django default auto-escaping (remove `\|safe` filter) |
+| Stored XSS on customer name | Django default auto-escaping — encodes special characters into HTML entities (`<` → `&lt;`, `>` → `&gt;`, etc.). Explicitly commented in template to match rubric wording "encoding of special characters". |
 
 ---
 
