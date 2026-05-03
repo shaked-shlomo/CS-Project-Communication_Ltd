@@ -2,41 +2,32 @@
 
 CS Cyber Course Final Project — Django + MySQL worker portal for a fictional telecom company.
 
-## Project Structure
-
-```
-Comunication_Ltd/
-├── version_secure/      ← Part A: fully secure implementation
-├── version_vulnerable/  ← Part B: intentionally vulnerable (SQLi + XSS demo)
-└── docs/
-    ├── developer-guide.md          ← system overview, attack explanations, code comparisons
-    ├── superpowers/specs/          ← design spec
-    └── superpowers/plans/          ← implementation plan
-```
+Two versions are included:
+- `version_secure/` — fully secure implementation (Part A)
+- `version_vulnerable/` — intentionally vulnerable for SQLi + XSS demo (Part B)
 
 ---
 
 ## Requirements
 
 - Python 3.10+
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose)
+- Docker Desktop (or Podman) — for the MySQL database
 - Git
 
 ---
 
-## Setup — version_secure
+## Quick Start (version_secure)
 
-### 1. Clone the repo
+### 1. Clone and enter the project
 
 ```bash
 git clone https://github.com/shaked-shlomo/CS-Project-Communication_Ltd.git
-cd CS-Project-Communication_Ltd
+cd CS-Project-Communication_Ltd/version_secure
 ```
 
-### 2. Create a virtual environment and install dependencies
+### 2. Set up Python environment
 
 ```bash
-cd version_secure
 python3 -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -48,7 +39,7 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Open `.env` and fill in your values. For the default Docker setup below, use these:
+The default values in `.env` work with the Docker setup below — no changes needed unless you want email support:
 
 ```
 SECRET_KEY=dev-secret-key-change-in-production
@@ -61,78 +52,65 @@ EMAIL_HOST_USER=your_gmail@gmail.com
 EMAIL_HOST_PASSWORD=your_gmail_app_password
 ```
 
-> **Gmail setup:** To enable the forgot-password email feature, create a Gmail App Password at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) and use it as `EMAIL_HOST_PASSWORD`.
+> **Email (optional):** To enable forgot-password emails, generate a Gmail App Password at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) and set it as `EMAIL_HOST_PASSWORD`.
 
-### 4. Start the MySQL database
+### 4. Start the database
 
 ```bash
 docker compose up -d
 ```
 
-This starts a MySQL 8.0 container on port 3306. The database `comunication_ltd` is created automatically.
+This starts a MySQL 8.0 container on port 3306. To stop it: `docker compose down`.
+To stop and wipe all data: `docker compose down -v`.
 
-To stop it:
-```bash
-docker compose down
-```
+> **Podman users:** use `podman-compose up -d` instead.
 
-To stop and delete all data:
-```bash
-docker compose down -v
-```
-
-### 5. Access the database (optional)
-
-To open a MySQL shell inside the container:
-
-```bash
-docker exec -it comunication_ltd_db mysql -u root -proot comunication_ltd
-```
-
-Or connect with a GUI client (TablePlus, DBeaver, MySQL Workbench):
-
-| Field    | Value         |
-|----------|---------------|
-| Host     | 127.0.0.1     |
-| Port     | 3306          |
-| User     | root          |
-| Password | root          |
-| Database | comunication_ltd |
-
-> If you are using Podman instead of Docker, replace `docker` with `podman` in the command above.
-
-### 6. Run migrations
+### 5. Run migrations
 
 ```bash
 python manage.py migrate
 ```
 
-### 7. Create the first admin account
+### 6. Create an admin account
 
 ```bash
 python manage.py create_admin
 ```
 
-Enter a username, email, and a strong password when prompted.
+Enter a username, email, and password when prompted. Password must be at least 10 characters with uppercase, lowercase, digit, and special character.
 
-Password requirements (set in `password_config.json`):
-- Minimum 10 characters
-- At least one uppercase letter, lowercase letter, digit, and special character
-- Cannot be a common dictionary word
-
-### 8. Run the development server
+### 7. Run the server
 
 ```bash
 python manage.py runserver
 ```
 
-Open [http://localhost:8000](http://localhost:8000) in your browser and log in with the admin account you created.
+Open [http://localhost:8000](http://localhost:8000) and log in with the admin account.
 
 ---
 
-## Setup — version_vulnerable
+## Connecting to the Database Directly (optional)
 
-The vulnerable version is identical to the secure version but uses a separate database.
+**Shell inside the container:**
+```bash
+docker exec -it comunication_ltd_db mysql -u root -proot comunication_ltd
+```
+
+**GUI client** (TablePlus, DBeaver, MySQL Workbench):
+
+| Field    | Value            |
+|----------|------------------|
+| Host     | 127.0.0.1        |
+| Port     | 3306             |
+| User     | root             |
+| Password | root             |
+| Database | comunication_ltd |
+
+---
+
+## Setting Up version_vulnerable (Part B)
+
+The vulnerable version runs on a separate port and database so both can run at the same time.
 
 ```bash
 cd version_vulnerable
@@ -142,12 +120,11 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edit `.env` and set `DB_NAME=comunication_ltd_vuln`.
+In `.env`, change `DB_NAME` to `comunication_ltd_vuln`.
 
-Start its database (runs on a different port to avoid conflicts):
+In `docker-compose.yml`, change the port to `3307:3306`.
 
-> Update `version_vulnerable/docker-compose.yml` to use port `3307:3306`, then:
-
+Then:
 ```bash
 docker compose up -d
 python manage.py migrate
@@ -155,7 +132,34 @@ python manage.py create_admin
 python manage.py runserver 8001
 ```
 
-Open [http://localhost:8001](http://localhost:8001) for the vulnerable version.
+Open [http://localhost:8001](http://localhost:8001).
+
+---
+
+## Demonstrating the Attacks (Part B)
+
+Run both versions at the same time: `localhost:8000` = secure, `localhost:8001` = vulnerable.
+
+### SQL Injection
+
+On the **vulnerable** version, go to the login page and enter:
+
+| Field    | Value              |
+|----------|--------------------|
+| Username | `' OR '1'='1' --`  |
+| Password | *(leave empty)*    |
+
+You will be logged in without valid credentials. The same input on the secure version returns "User does not exist".
+
+### Stored XSS
+
+On the **vulnerable** version, log in and go to **Add Customer**. Enter this as the First Name:
+
+```
+<script>alert('XSS!')</script>
+```
+
+Then go to **Customer List** — an alert box fires. On the secure version, the same input displays as plain text.
 
 ---
 
@@ -169,36 +173,9 @@ pytest -v
 
 ---
 
-## Demonstrating the Attacks (Part B)
-
-Run both versions side by side (`localhost:8000` = secure, `localhost:8001` = vulnerable).
-
-### SQL Injection — Login bypass
-
-On **localhost:8001** (vulnerable), go to the login page and enter:
-
-| Field | Value |
-|---|---|
-| Username | `' OR '1'='1' --` |
-| Password | *(leave empty)* |
-
-You will be logged in without valid credentials. The same input on **localhost:8000** (secure) returns "User does not exist".
-
-### Stored XSS — Script injection
-
-On **localhost:8001** (vulnerable), log in and go to **Add Customer**. Enter this as the First Name:
-
-```
-<script>alert('XSS!')</script>
-```
-
-Submit, then go to **Customer List** — an alert box will fire. On **localhost:8000** (secure), the same input is displayed as plain text on the customer list page.
-
----
-
 ## Password Policy
 
-All password rules are controlled by `password_config.json` — edit this file to change policy instantly (no server restart needed):
+All rules live in `password_config.json`. Edit the file to change policy instantly — no server restart needed.
 
 ```json
 {
@@ -217,10 +194,10 @@ All password rules are controlled by `password_config.json` — edit this file t
 
 ## Team
 
-| Scope | Branch | Responsibilities |
-|---|---|---|
-| Student 1 — Backend Foundation | `feature/backend-foundation` | Models, password utilities, project setup |
-| Student 2 — Auth Infrastructure | `feature/auth-infrastructure` | Decorators, context processor, base template, URLs |
-| Student 3 — Login & Recovery | `feature/login-and-recovery` | Login, logout, forgot/reset password |
-| Student 4 — Worker Management | `feature/worker-management` | Register worker, change password, create_admin |
-| Student 5 — Customer Portal & Vuln | `feature/customers-and-vuln` | Customer list/add, full vulnerable version |
+| Student | Branch | Responsibilities |
+|---------|--------|-----------------|
+| Student 1 | `feature/backend-foundation` | Models, password utilities, project setup |
+| Student 2 | `feature/auth-infrastructure` | Decorators, context processor, base template, URLs |
+| Student 3 | `feature/login-and-recovery` | Login, logout, forgot/reset password |
+| Student 4 | `feature/worker-management` | Register worker, change password, create_admin |
+| Student 5 | `feature/customers-and-vuln` | Customer list/add, full vulnerable version |
