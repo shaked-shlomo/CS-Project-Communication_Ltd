@@ -80,6 +80,23 @@ The two versions are **identical in structure**. The only differences are in spe
 
 ## 3. Database Design
 
+### What is a model?
+
+A model is a Python class that represents a database table. Each attribute on the class is a column in that table.
+
+```python
+class Worker(models.Model):
+    username = models.CharField(max_length=150)
+    email = models.EmailField()
+    role = models.CharField(max_length=10)
+```
+
+This tells Django: create a table called `worker` with columns `username`, `email`, and `role`. When you call `worker.save()`, Django runs the `INSERT` SQL for you — you never write SQL directly for this.
+
+Running `python manage.py migrate` is what actually creates these tables in MySQL.
+
+---
+
 We use **MySQL** with four tables. Here is what each one stores and why.
 
 ### `Worker` table
