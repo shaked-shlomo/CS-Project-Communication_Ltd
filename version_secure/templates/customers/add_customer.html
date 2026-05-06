@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Customer — Comunication_LTD{% endblock %}
+
+{% block content %}
+<div class="card p-4">
+    <h4 class="mb-3">Add New Customer</h4>
+
+    {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">First Name</label>
+            <input type="text" name="first_name" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Last Name</label>
+            <input type="text" name="last_name" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">ID Number</label>
+            <input type="text" name="id_number" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Phone</label>
+            <input type="text" name="phone" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Internet Package</label>
+            <select name="package" class="form-select">
+                <option>Basic 50MB</option>
+                <option>Standard 100MB</option>
+                <option>Premium 500MB</option>
+                <option>Ultra 1GB</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-dark w-100">Add Customer</button>
+    </form>
+
+    <div class="mt-3">
+        <a href="/customers/" class="text-muted small">← Back to Customer List</a>
+    </div>
+</div>
+{% endblock %}
