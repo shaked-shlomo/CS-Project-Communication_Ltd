@@ -20,13 +20,14 @@ def add_customer_view(request):
         phone = request.POST.get('phone', '').strip()
         package = request.POST.get('package', '').strip()
 
-        # SECURE: parameterized INSERT — values are placeholders, never concatenated into SQL
+        # VULNERABLE: string concatenation — open to SQL injection attack
         with connection.cursor() as cursor:
             cursor.execute(
                 "INSERT INTO customers_customer "
                 "(first_name, last_name, id_number, phone, package, created_by_id, created_at) "
-                "VALUES (%s, %s, %s, %s, %s, %s, NOW())",
-                [first_name, last_name, id_number, phone, package, request.worker.id],
+                "VALUES ('" + first_name + "', '" + last_name + "', '" + id_number
+                + "', '" + phone + "', '" + package + "', "
+                + str(request.worker.id) + ", NOW())"
             )
 
         return render(request, 'customers/add_customer.html', {
