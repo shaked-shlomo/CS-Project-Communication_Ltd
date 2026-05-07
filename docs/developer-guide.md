@@ -74,11 +74,33 @@ Comunication_Ltd/
     └── superpowers/specs/    ← design spec
 ```
 
+Each app folder contains three key files:
+- `models.py` — defines the database tables (see Section 3)
+- `views.py` — contains the functions that handle each URL (see Section 4)
+- `urls.py` — maps URL paths to view functions (e.g. `/login/` → `login_view`)
+
 The two versions are **identical in structure**. The only differences are in specific lines inside `views.py` and one template file. This makes it easy to compare them side by side.
 
 ---
 
 ## 3. Database Design
+
+### What is a model?
+
+A model is a Python class that represents a database table. Each attribute on the class is a column in that table.
+
+```python
+class Worker(models.Model):
+    username = models.CharField(max_length=150)
+    email = models.EmailField()
+    role = models.CharField(max_length=10)
+```
+
+This tells Django: create a table called `worker` with columns `username`, `email`, and `role`. When you call `worker.save()`, Django runs the `INSERT` SQL for you — you never write SQL directly for this.
+
+Running `python manage.py migrate` is what actually creates these tables in MySQL.
+
+---
 
 We use **MySQL** with four tables. Here is what each one stores and why.
 
@@ -139,6 +161,39 @@ Stores the one-time tokens used in the forgot-password flow.
 
 ## 4. How Authentication Works
 
+### What is a session?
+
+A session is how the server remembers who you are between requests. HTTP is stateless — every request is independent, so without sessions the server would forget you were logged in the moment you navigate to a new page.
+
+When you log in, Django creates a session: it stores your worker ID on the server and sends the browser a cookie with a session ID. On every subsequent request, the browser sends that cookie back, and Django uses it to look up your session data.
+
+```
+Browser                          Server
+  |                                |
+  |-- POST /login/ (username+pw) ->|
+  |                                | checks credentials, stores worker_id in session
+  |<-- Set-Cookie: sessionid=abc --|
+  |                                |
+  |-- GET /customers/ + cookie  -->|
+  |                                | reads session → finds worker_id → knows who you are
+  |<-- 200 Customer List ----------|
+```
+
+### What is a view?
+
+A view is a Python function that handles one URL. It receives the request, does some logic (check the session, query the database, validate a form), and returns a response (an HTML page or a redirect).
+
+```python
+def customer_list(request):        # called when someone visits /customers/
+    worker_id = request.session.get('worker_id')
+    if not worker_id:
+        return redirect('/login/')
+    customers = Customer.objects.all()
+    return render(request, 'customer_list.html', {'customers': customers})
+```
+
+Each screen in the app has one view function. They all live in `views.py`.
+
 We do **not** use Django's built-in login system. We manage authentication ourselves using sessions. Here is the full flow:
 
 ### Login
@@ -186,6 +241,12 @@ Admin-only views additionally check the role:
 ```
 
 ### Password storage — HMAC + Salt
+
+#### What is HMAC?
+
+HMAC (Hash-based Message Authentication Code) is a way to turn a password into a fixed-length string that cannot be reversed. It works like a regular hash (e.g. SHA-256) but takes a second input — a key — which in our case is the salt.
+
+We use it instead of a plain hash because a plain hash is predictable: the same password always produces the same output, so an attacker with a stolen database can use precomputed tables to reverse common passwords. Adding a unique salt per worker makes every hash unique even if two workers share the same password.
 
 When a worker registers or changes their password:
 
