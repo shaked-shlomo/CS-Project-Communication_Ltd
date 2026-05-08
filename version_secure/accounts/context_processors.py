@@ -1,5 +1,11 @@
-# Context processors implemented by Student 1 (Scope: Backend Foundation)
+from accounts.models import Worker
+
 
 def worker_context(request):
-    # Return context available to all templates
-    return {}
+    worker_id = request.session.get('worker_id')
+    if worker_id:
+        try:
+            return {'worker': Worker.objects.get(id=worker_id)}
+        except Worker.DoesNotExist:
+            pass
+    return {'worker': None}
